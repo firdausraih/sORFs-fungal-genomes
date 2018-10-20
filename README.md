@@ -9,3 +9,6 @@ Contains dataset of fungal genomes and software to predict sORFs
 ##sORFs prediction
 sh step2runsORFs.sh
 
+##fungal genomes
+download from ftp://ftp.ncbi.nlm.nih.gov/genomes/archive/old_refseq/Fungi/
+
