@@ -56,16 +56,16 @@ cd $lines
 
 	##predict sORF by getorf
 		getorf -sequence "$lines"_igr.fasta -outseq "$lines"_igr_getorf.fasta -find 3 -maxsize 240
-		getorf -sequence genome.fasta -outseq "$lines"_genome_getorf.fasta -find 3 -maxsize 240
-		cat "$lines"_igr_getorf.fasta "$lines"_genome_getorf.fasta >"$lines"_getorf.fasta
+		getorf -sequence "$lines"_genomic.fasta -outseq "$lines"_genomic_getorf.fasta -find 3 -maxsize 240
+		cat "$lines"_igr_getorf.fasta "$lines"_genomic_getorf.fasta >"$lines"_getorf.fasta
 				
 	##predict sORF by sorffinder
 		##makemodel	
-		perl ./../src/make_model.pl -c *coding.fasta -n *intron.fasta -o "$lines"_matrix
+		perl pathtosORFfinder/src/make_model.pl -c *coding.fasta -n *intron.fasta -o "$lines"_matrix
 		##simulate
-		perl ./../src/simulate.pl -m *_matrix -p 0.5 -o "$lines"_simulate0.5
+		perl pathtosORFfinder/src/simulate.pl -m *_matrix -p 0.5 -o "$lines"_simulate0.5
 		##sorffinder
-		#perl ./../src/search_sORF.pl -m *_matrix -p 0.5 -s *_simulate0.5 -i "$lines"_igr.fasta -o "$lines"_sORF0.5.fasta -d b
+		#perl pathtosORFfinder/src/search_sORF.pl -m *_matrix -p 0.5 -s *_simulate0.5 -i "$lines"_igr.fasta -o "$lines"_sORF0.5.fasta -d b
 			
 	## filter length sORFfinder
 		cp "$lines"_sORF0.5.fasta "$lines"_sORF0.5_edit.fasta
@@ -147,7 +147,7 @@ cd $lines
 		do 
     		#sed -i "s/>/>${f%%_*}_/" "$f"
 		##add species name infront sorf ID 
-		sed -i "s/>/>${f%_*}-/;s/\_sorf//g" "$f"
+		#sed -i "s/>/>${f%_*}-/;s/\_sorf//g" "$f"
 
 		## rename Aspergillus_fumigatus-sf488 nk tukar jd Afum-sf488
 		sed -i "s/>\(.\).*_\(...\).*\(-.*\)/>\1\2\3/" "$f"
@@ -223,7 +223,7 @@ cd sORF_cluster
 	cut -f3 test3 >test4
 	
 	#grep seq of conserved sORFs
-	sh ../grep_seq_from_multifasta.sh test4 sorf_combined.fasta cluster_sorf.fasta
+	sh ../../grep_seq_from_multifasta.sh test4 sorf_combined.fasta cluster_sorf.fasta
 
 #out sORF_cluster
 cd ..
