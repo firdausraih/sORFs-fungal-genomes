@@ -24,7 +24,7 @@ cd $lines
 	cat *.faa > "$lines"_protein.faa
 	cat *_intron.fasta > "$lines"_intron.fasta
 	cat *.gff > "$lines"_genomic.gff
-	
+	cat *.ffn > "$lines"_coding.fasta
 
 #sORF from genome annotation
 	grep ">" *_protein.faa >"$lines"_orfp
@@ -32,7 +32,6 @@ cd $lines
 	awk '$2<=80 {print $1}' "$lines"_lengthp > "$lines"_listp
 	grep -Ff "$lines"_listp "$lines"_orfp > "$lines"_sorflistp
 	perl ../fasta_getseq.pl "$lines"_sorflistp *_protein.faa > "$lines"_sorfp_genomeannotation
-
 
 ##sORF from ab initio
 	##extract igr
@@ -52,7 +51,7 @@ cd $lines
 		sh ../remove_overlapgene.sh "$lines"_igr.gff >"$lines"_igr_removerlapgene.gff
 	
 		##extract igr sequences
-		bedtools getfasta -fi "$lines"_genomic.fasta -bed "$lines"_igr_removerlapgene.gff -fo "$lines"_igr.fa
+		bedtools getfasta -fi "$lines"_genomic.fa -bed "$lines"_igr_removerlapgene.gff -fo "$lines"_igr.fa
 
 	##predict sORF by getorf
 		getorf -sequence "$lines"_igr.fasta -outseq "$lines"_igr_getorf.fasta -find 3 -maxsize 240
@@ -223,7 +222,7 @@ cd sORF_cluster
 	cut -f3 test3 >test4
 	
 	#grep seq of conserved sORFs
-	sh ../../grep_seq_from_multifasta.sh test4 sorf_combined.fasta cluster_sorf.fasta
+	sh ../../grep_seq_from_multifasta.sh test4 sorf_combined.fasta conserved_sorf.fasta
 
 #out sORF_cluster
 cd ..
