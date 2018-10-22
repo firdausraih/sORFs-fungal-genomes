@@ -35,17 +35,15 @@ cd $lines
 
 ##sORF from ab initio
 	##extract igr
-		##rm edit fasta header genomic.fa same as in genomic.gff3
-		sed 's/\.[1,2]//' "$lines"_genomic.fa > "$lines"_genomic.fasta
-		
-		##xperlu edit header fasta dlm genome sbb gff drpd ncbi punya header gff sama dgn fasta file
 		##index genome sequences
-		samtools faidx "$lines"_genomic.fasta
-	
+		samtools faidx "$lines"_genomic.fa
+		#cek genome index success or not
+		cat "$lines"_genomic.fa.fai
+		
 		##grep gene type from genomic.gff3
 		perl ../grep_type_gene.pl "$lines"_genomic.gff > "$lines"_gene.gff
 	
-		perl ../myigrgff.pl "$lines"_gene.gff "$lines"_genomic.fasta > "$lines"_igr.gff
+		perl ../myigrgff.pl "$lines"_gene.gff "$lines"_genomic.fa.fai > "$lines"_igr.gff
 		
 		##remove igr with start higher than stop.. 
 		sh ../remove_overlapgene.sh "$lines"_igr.gff >"$lines"_igr_removerlapgene.gff
