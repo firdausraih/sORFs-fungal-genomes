@@ -1,5 +1,5 @@
 # sORFs-fungal-genomes
-Contains dataset of fungal genomes and software to predict sORFs
+Contains test data of fungal genomes and software to predict sORFs
 
 ##Software requirement
 1. sORFfinder
