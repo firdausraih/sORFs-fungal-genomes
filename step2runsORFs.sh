@@ -9,7 +9,7 @@
 #########################################################
 
 #copy directory name to list
-FILELIST="dirlist"
+FILELIST="dirlist.txt"
 
 mkdir sORF_cluster
 
@@ -25,6 +25,7 @@ cd $lines
 	cat *_intron.fasta > "$lines"_intron.fasta
 	cat *.gff > "$lines"_genomic.gff
 	cat *.ffn > "$lines"_coding.fasta
+	
 
 #sORF from genome annotation
 	grep ">" *_protein.faa >"$lines"_orfp
@@ -33,13 +34,15 @@ cd $lines
 	grep -Ff "$lines"_listp "$lines"_orfp > "$lines"_sorflistp
 	perl ../fasta_getseq.pl "$lines"_sorflistp *_protein.faa > "$lines"_sorfp_genomeannotation
 
+
 ##sORF from ab initio
 	##extract igr
 		##index genome sequences
 		samtools faidx "$lines"_genomic.fa
 		#cek genome index success or not
 		cat "$lines"_genomic.fa.fai
-		
+				
+		#python ../get_intergenic.py *_genomic.gff
 		##grep gene type from genomic.gff3
 		perl ../grep_type_gene.pl "$lines"_genomic.gff > "$lines"_gene.gff
 	
@@ -50,26 +53,21 @@ cd $lines
 	
 		##extract igr sequences
 		bedtools getfasta -fi "$lines"_genomic.fa -bed "$lines"_igr_removerlapgene.gff -fo "$lines"_igr.fa
-
+		
 	##predict sORF by getorf
-		getorf -sequence "$lines"_igr.fasta -outseq "$lines"_igr_getorf.fasta -find 3 -maxsize 240
-		getorf -sequence "$lines"_genomic.fasta -outseq "$lines"_genomic_getorf.fasta -find 3 -maxsize 240
+		getorf -sequence "$lines"_igr.fa -outseq "$lines"_igr_getorf.fasta -find 3 -maxsize 240
+		getorf -sequence "$lines"_genomic.fa -outseq "$lines"_genomic_getorf.fasta -find 3 -maxsize 240
 		cat "$lines"_igr_getorf.fasta "$lines"_genomic_getorf.fasta >"$lines"_getorf.fasta
 				
 	##predict sORF by sorffinder
 		##makemodel	
-		perl pathtosORFfinder/src/make_model.pl -c *coding.fasta -n *intron.fasta -o "$lines"_matrix
+		perl /pathtosORFfinder/src/make_model.pl -c "$lines"_coding.fasta -n "$lines"_intron.fasta -o "$lines"_matrix
 		##simulate
-		perl pathtosORFfinder/src/simulate.pl -m *_matrix -p 0.5 -o "$lines"_simulate0.5
+		perl /pathtosORFfinder/src/simulate.pl -m "$lines"_matrix -p 0.5 -o "$lines"_simulate0.5
 		##sorffinder
-		#perl pathtosORFfinder/src/search_sORF.pl -m *_matrix -p 0.5 -s *_simulate0.5 -i "$lines"_igr.fasta -o "$lines"_sORF0.5.fasta -d b
+		perl /pathtosORFfinder/src/search_sORF.pl -m "$lines"_matrix -p 0.5 -s "$lines"_simulate0.5 -i "$lines"_igr.fa -o "$lines"_sORF0.5.fasta -d b
 			
 	## filter length sORFfinder
-		cp "$lines"_sORF0.5.fasta "$lines"_sORF0.5_edit.fasta
-		sed '1,3d' "$lines"_sORF0.5_edit.fasta >"$lines"_sORF0.5_edit2.fasta
-		awk '/^>/ {printf("\n%s\n",$0);next; } { printf("%s",$0);}  END {printf("\n");}' < "$lines"_sORF0.5_edit2.fasta >"$lines"_sORF0.5_oneline.fasta
-		awk '!/^>/ { next } { getline seq } length(seq) <= 240 { print $0 "\n" seq }' "$lines"_sORF0.5_oneline.fasta >"$lines"_sORF0.5_filter.fasta
-	
 		##remove header result sORFfinder
 		sed '1,3d' "$lines"_sORF0.5.fasta >> "$lines"_sORF0.5_rename.fasta
 	
@@ -117,7 +115,7 @@ cd $lines
 
 		##blast sORFs against coding sequences
 		makeblastdb -in *_protein.faa -dbtype prot
-		blastx -db *_protein.faa -query "$lines"_sORF_predicted.fasta -out "$lines"_sORF_abinitiopredictedVSprotein -outfmt 0 -evalue 0.00009 -num_threads 20
+		blastx -db *_protein.faa -query "$lines"_sORF_predicted.fasta -out "$lines"_sORF_abinitiopredictedVSprotein -outfmt 0 -num_threads 20
 		perl ../bpSearchIO.pl "$lines"_sORF_abinitiopredictedVSprotein "$lines"_sORF_abinitiopredictedVSprotein.parsed
 
 		##grep sorf seq hit protein
@@ -137,25 +135,26 @@ cd $lines
 		transeq "$lines"_sORF_abinitio_final.fasta > "$lines"_sORF_abinitio_final.faa
 
 ##combine sORFs genome annotation and ab initio
-		cat "$lines"_sORF_abinitio_final.fasta "$lines"_sorfp_genomeannotation > "$lines"_sorf_final
+		##combine sORF abinitio + genome annotation
+	cat "$lines"_sORF_abinitio_final.faa "$lines"_sorfp_genomeannotation > "$lines"_sorf_final
 	
-		##rename with species name
-		for f in "$lines"_sorf_final 
-		do 
-    		#sed -i "s/>/>${f%%_*}_/" "$f"
+	awk '/>/{sub(">","&"FILENAME"-");sub(/\.fasta/,x)}1' "$lines"_sorf_final > "$lines"_sorf_final2
+	##rename with species name
+	for f in "$lines"_sorf_final2
+	do 
+    	#sed -i "s/>/>${f%%_*}_/" "$f"
 		##add species name infront sorf ID 
-		#sed -i "s/>/>${f%_*}-/;s/\_sorf//g" "$f"
+		sed -i "s/>.*/>${f%_*}-/;s/\_sorf_final//g" "$f";
 
 		## rename Aspergillus_fumigatus-sf488 nk tukar jd Afum-sf488
-		sed -i "s/>\(.\).*_\(...\).*\(-.*\)/>\1\2\3/" "$f"
+		sed -i "s/>\(.\).*_\(...\).*\(-.*\)/>\1\2\3/" "$f";
 
 		#rename Aspergillus_fumigatus-sf488 nk tukar jd A.fumagitus-sf488
-		#sed -i "s/>\(.\).*\(_\)\(.*\)/>\1\.\3/" "$f"
+		#sed -i "s/>\(.\).*\(_\)\(.*\)/>\1\.\3/" "$f";
 		
-		done
-		
-		#copy final sORF prediction into folder sorf_cluster
-		cp "$lines"_sorf_final ../sORF_cluster
+	done
+
+	cp "$lines"_sorf_final2 ../sORF_cluster
 
 	echo "$lines"
 
@@ -169,23 +168,27 @@ done < $FILELIST
 cd sORF_cluster
 
 	##combined sORFs from all fungal genomes
-		cat *_sorf_final > sORF_combined.fasta
-
+		cat *_sorf_final2 > sORF_combined.fasta
 	##cluster sORF combined
-		cd-hit -i sorf_combined.fasta -o cluster_sORF_combined_cdhit70 -c 0.7 -n 4 -g 1 -G 0 -aS 0.8 -d 500 -p 1 > db_70.log
-
+		cd-hit -i sORF_combined.fasta -o cluster_sORF_combined_cdhit70 -c 0.7 -n 5 -g 1 -G 0 -aS 0.8 -d 500 -p 1 > db_70.log
+		echo "cdhit"
 	##sh count_organism_uniq.sh and need to change input.clstr name first
+	
 		csplit -z cluster_sORF_combined_cdhit70.clstr '/Cluster /' {*}
+		mkdir cluster_sORF_combined_cdhit70_ori
+		cp xx* cluster_sORF_combined_cdhit70_ori
 	
 	##count how many species in each clustered
 		for i in xx*
 		do
-			 j=`more $i | wc -l` 
-			 j2=$(( j - 1 ))
+			j=`more $i | wc -l` 
+			j2=$(( j - 1 ))
 		
 			 echo $i": "$j2 >> count.xx
 			 sed -i 's/\-.*//g' $i
-			 organism=`awk '{ print $3 }' $i`	
+			##rename Aspergillus_fumigatus-sf488 nk tukar jd A.fumagitus-sf488
+			 ##sed -i "s/>(\.*\)(\-.*\)/>\1q" $i
+			#organism=`awk '{ print $3 }' $i`	
 		
 			 echo $organism > $i.organism
 			 sed -i 's/ >/\n>/g' $i.organism
@@ -201,14 +204,31 @@ cd sORF_cluster
 			k=`more $i | wc -l` 
 			echo $i $k >> uniq.xx
 		done
-		
+		echo "species count complete"
+
 	##output count.xx uniq.xx
 	##Select atleast two species in one cluster
-	cut -f2 "2" uniq.xx > listuniq_70
+	##cut -f2 "2" uniq.xx > listuniq_70
+	##cut -f2 | awk '>2 {print}'
+	awk '{ if ($2 >= 2) { print } }' uniq.xx > listuniq_70
+	echo "select conserved sORFs in clusters"
 
-	#grep cluster based on conserved cluster
-	xargs -a listuniq_70 cp -t ../cluster_sorf_combined_cdhit70
+	##edit cluster name by remove " .organism.uniq "
+	sed -i "s/\..*//" listuniq_70
+
+##create file for selected cluster	
+	mkdir cluster_listuniq_70
+	cd cluster_sORF_combined_cdhit70_ori
 	
+		#grep cluster based on conserved cluster
+		xargs -a ../listuniq_70 cp -t ../cluster_listuniq_70
+		
+		#count files in folder
+		find . -type f | wc -l
+	cd ..
+
+#get into cluster_listuniq_70 to grep fasta seq
+	cd cluster_listuniq_70
 	#cat all sorf cluster
 	cat xx* >cluster_sorf
 	
@@ -219,8 +239,11 @@ cd sORF_cluster
 	sed 's/, >/\t\>/g' test2 >test3
 	cut -f3 test3 >test4
 	
-	#grep seq of conserved sORFs
-	sh ../../grep_seq_from_multifasta.sh test4 sorf_combined.fasta conserved_sorf.fasta
+	#grep seq
+	sh ../../grep_seq_from_multifasta.sh test4 ../sORF_combined.fasta conserved_sorf.fasta
+	echo "sorf conserved completed"
 
-#out sORF_cluster
+	cd ..
+
+#out folder sORF_cluster
 cd ..
