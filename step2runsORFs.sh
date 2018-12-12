@@ -142,15 +142,9 @@ cd $lines
 	##rename with species name
 	for f in "$lines"_sorf_final2
 	do 
-    	#sed -i "s/>/>${f%%_*}_/" "$f"
-		##add species name infront sorf ID 
-		sed -i "s/>.*/>${f%_*}-/;s/\_sorf_final//g" "$f";
-
-		## rename Aspergillus_fumigatus-sf488 nk tukar jd Afum-sf488
-		sed -i "s/>\(.\).*_\(...\).*\(-.*\)/>\1\2\3/" "$f";
-
-		#rename Aspergillus_fumigatus-sf488 nk tukar jd A.fumagitus-sf488
-		#sed -i "s/>\(.\).*\(_\)\(.*\)/>\1\.\3/" "$f";
+    	    		
+	#remove _sorf_final
+	sed -i "s/\_sorf_final2//g" "$f"
 		
 	done
 
@@ -187,8 +181,8 @@ cd sORF_cluster
 			 echo $i": "$j2 >> count.xx
 			 sed -i 's/\-.*//g' $i
 			##rename Aspergillus_fumigatus-sf488 nk tukar jd A.fumagitus-sf488
-			 ##sed -i "s/>(\.*\)(\-.*\)/>\1q" $i
-			#organism=`awk '{ print $3 }' $i`	
+			 sed -i 's/\-.*//g' $i
+			organism=`awk '{ print $3 }' $i`	
 		
 			 echo $organism > $i.organism
 			 sed -i 's/ >/\n>/g' $i.organism
